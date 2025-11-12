@@ -2,13 +2,22 @@
 const { validationResult } = require('express-validator');
 const bcrypt = require('bcryptjs');
 const jwt = require('jsonwebtoken');
-const User = require('../models/User');
 const dotenv = require('dotenv');
 dotenv.config();
 
-// register a new user
+const User = require('../models/User');
+
+/*
+  Controller: authController
+  Purpose:
+  - Handle user registration and login.
+  - Issue JWT tokens.
+  - Provide a route to get current user data.
+*/
+
+// REGISTER new user
 exports.register = async (req, res) => {
-  // validation errors from route
+  // Validate request body fields
   const errors = validationResult(req);
   if (!errors.isEmpty()) {
     return res.status(400).json({ errors: errors.array() });
@@ -17,32 +26,41 @@ exports.register = async (req, res) => {
   const { name, email, password } = req.body;
 
   try {
-    // check if user exists
+    // Check if user already exists
     let user = await User.findOne({ email });
     if (user) {
       return res.status(400).json({ msg: 'User already exists' });
     }
 
-    // create new user and hash password
+    // Create a new user instance
     user = new User({ name, email, password });
+
+    // Hash password for security
     const salt = await bcrypt.genSalt(10);
     user.password = await bcrypt.hash(password, salt);
 
+    // Save new user
     await user.save();
 
-    // create token and return
-    const payload = { userId: user.id };
-    const token = jwt.sign(payload, process.env.JWT_SECRET, { expiresIn: process.env.JWT_EXPIRES_IN || '7d' });
+    // Create JWT payload
+    const payload = { userId: user.id, role: user.role };
 
-    res.json({ token });
+    // Sign token
+    const token = jwt.sign(payload, process.env.JWT_SECRET, {
+      expiresIn: process.env.JWT_EXPIRES_IN || '7d'
+    });
+
+    // Return token to client
+    res.status(201).json({ token });
   } catch (err) {
-    console.error(err.message);
+    console.error('Error in register:', err.message);
     res.status(500).send('Server error');
   }
 };
 
-// login existing user
+// LOGIN existing user
 exports.login = async (req, res) => {
+  // Validate request body fields
   const errors = validationResult(req);
   if (!errors.isEmpty()) {
     return res.status(400).json({ errors: errors.array() });
@@ -51,25 +69,47 @@ exports.login = async (req, res) => {
   const { email, password } = req.body;
 
   try {
-    // find user
+    // Find user by email
     const user = await User.findOne({ email });
     if (!user) {
       return res.status(400).json({ msg: 'Invalid credentials' });
     }
 
-    // check password
+    // Compare password with hashed password
     const isMatch = await bcrypt.compare(password, user.password);
     if (!isMatch) {
       return res.status(400).json({ msg: 'Invalid credentials' });
     }
 
-    // sign token
-    const payload = { userId: user.id };
-    const token = jwt.sign(payload, process.env.JWT_SECRET, { expiresIn: process.env.JWT_EXPIRES_IN || '7d' });
+    // Create JWT payload
+    const payload = { userId: user.id, role: user.role };
 
+    // Sign token
+    const token = jwt.sign(payload, process.env.JWT_SECRET, {
+      expiresIn: process.env.JWT_EXPIRES_IN || '7d'
+    });
+
+    // Return token to client
     res.json({ token });
   } catch (err) {
-    console.error(err.message);
+    console.error('Error in login:', err.message);
+    res.status(500).send('Server error');
+  }
+};
+
+// GET current logged-in user profile
+exports.getMe = async (req, res) => {
+  try {
+    // req.user.id comes from auth middleware after JWT verification
+    const user = await User.findById(req.user.id);
+    if (!user) {
+      return res.status(404).json({ msg: 'User not found' });
+    }
+
+    // Use the model method to return safe user info (no password)
+    res.json(user.toPublic());
+  } catch (err) {
+    console.error('Error in getMe:', err.message);
     res.status(500).send('Server error');
   }
 };

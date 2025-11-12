@@ -1,127 +1,91 @@
-# Employee TaskTrack - Phase 1: Project Setup and Backend Configuration
+# Employee TaskTrack – Phase 2 Report
 
-## Overview
+## User Authentication and Authorization
 
-Employee TaskTrack is a MERN-based application that helps employees create, update, and manage their own work tasks.  
-In this first phase, we set up the backend with Node.js, Express.js, and MongoDB, establish the project structure, and configure environment variables.
+### Objective
 
----
+The goal of this phase was to implement secure user authentication and authorization so employees can:
 
-## Phase 1 Objectives
+- Register accounts.
+- Log in with credentials.
+- Access their personal task lists using token-based authentication (JWT).
 
-- Initialize the Node.js project.
-- Install backend dependencies.
-- Connect the project to MongoDB Atlas.
-- Create project structure and core files.
-- Add models for User and Task.
-- Implement authentication using JWT.
-- Set up basic CRUD routes for tasks.
+This ensures that each user’s data remains private and only accessible to them.
 
 ---
 
-## Project Setup Steps
+### Work Completed
 
-### 1. Initialize Project
+1. **User Authentication Added**
 
-```bash
-mkdir employee-tasktrack-backend
-cd employee-tasktrack-backend
-npm init -y
-```
+   - Implemented registration and login using email and password.
+   - Passwords are securely hashed using bcrypt before saving in MongoDB.
+   - Upon successful login or registration, a JWT token is generated and sent to the client.
+   - Tokens expire automatically after a set duration (`JWT_EXPIRES_IN` from `.env`).
 
-### 2. Install Dependencies
+2. **Authorization Setup**
 
-```bash
-npm install express mongoose dotenv bcryptjs jsonwebtoken cors express-validator
-npm install -D nodemon
-```
+   - Introduced middleware (`auth.js`) to verify JWT tokens in the request header.
+   - If the token is valid, the user’s ID and role are attached to `req.user`.
+   - All private routes, such as task management, are now protected by this middleware.
+   - This ensures users can only view or modify their own tasks.
 
-### 3. Add Scripts in `package.json`
+3. **New API Endpoint**
 
-```json
-"scripts": {
-  "start": "node src/server.js",
-  "dev": "nodemon src/server.js"
-}
-```
+   - Added `GET /api/auth/me` route to allow users to retrieve their own profile information.
+   - Returns safe, public user details (without password).
 
-### 4. Create Project Structure
+4. **Code Improvements**
 
-```
-employee-tasktrack-backend/
-├─ src/
-│  ├─ config/
-│  │  └─ db.js
-│  ├─ controllers/
-│  │  ├─ authController.js
-│  │  └─ taskController.js
-│  ├─ middleware/
-│  │  └─ auth.js
-│  ├─ models/
-│  │  ├─ User.js
-│  │  └─ Task.js
-│  ├─ routes/
-│  │  ├─ auth.js
-│  │  └─ tasks.js
-│  └─ server.js
-├─ .env
-├─ .gitignore
-└─ package.json
-```
+   - Enhanced error handling and response consistency across all authentication routes.
+   - Improved input validation using express-validator to prevent invalid data.
+   - Updated the User model with a role field and a `toPublic()` method for secure data return.
 
-### 5. Configure `.env`
+5. **Environment and Security**
+   - All sensitive data (like the database URI and JWT secret) is managed through the `.env` file.
+   - `.env` is ignored in Git using `.gitignore` to prevent leaks.
+
+---
+
+### Updated Project Structure
 
 ```
-PORT=5000
-MONGODB_URI=mongodb+srv://Jeff:Jeff6595@cluster0.nfko3ho.mongodb.net/employeetasktrack?retryWrites=true&w=majority&appName=Cluster0
-JWT_SECRET=your_secure_random_secret
-JWT_EXPIRES_IN=7d
-```
-
-### 6. Connect to MongoDB
-
-Run the server and confirm connection:
-
-```bash
-npm run dev
-```
-
-You should see:
-
-```
-MongoDB connected
-Server started on port 5000
+src/
+├─ config/
+│  └─ db.js
+├─ controllers/
+│  ├─ authController.js     ← updated with register, login, and getMe
+│  └─ taskController.js
+├─ middleware/
+│  └─ auth.js               ← updated to handle JWT verification
+├─ models/
+│  ├─ User.js               ← updated with role and toPublic() method
+│  └─ Task.js
+├─ routes/
+│  ├─ auth.js               ← added /me route
+│  └─ tasks.js
+└─ server.js
 ```
 
 ---
 
-## Basic API Endpoints
+### Endpoints Overview
 
-| Method | Endpoint             | Description               | Auth Required |
-| ------ | -------------------- | ------------------------- | ------------- |
-| POST   | `/api/auth/register` | Register a new user       | No            |
-| POST   | `/api/auth/login`    | Log in user and get token | No            |
-| GET    | `/api/tasks`         | Get all user tasks        | Yes           |
-| POST   | `/api/tasks`         | Create a new task         | Yes           |
-| PUT    | `/api/tasks/:id`     | Update a task             | Yes           |
-| DELETE | `/api/tasks/:id`     | Delete a task             | Yes           |
-
----
-
-## .gitignore Setup
-
-```
-node_modules/
-.env
-.env.local
-.DS_Store
-npm-debug.log*
-yarn-debug.log*
-yarn-error.log*
-```
+| Method | Endpoint             | Description                       | Access                   |
+| ------ | -------------------- | --------------------------------- | ------------------------ |
+| POST   | `/api/auth/register` | Register a new user               | Public                   |
+| POST   | `/api/auth/login`    | Log in and receive JWT token      | Public                   |
+| GET    | `/api/auth/me`       | Retrieve logged-in user’s profile | Private (Token required) |
+| GET    | `/api/tasks`         | Fetch all user’s tasks            | Private                  |
+| POST   | `/api/tasks`         | Create a new task                 | Private                  |
+| PUT    | `/api/tasks/:id`     | Update an existing task           | Private                  |
+| DELETE | `/api/tasks/:id`     | Delete a task                     | Private                  |
 
 ---
 
-## Next Phase
+### Outcome
 
-Phase 2 will include the frontend setup using React, connecting it to the backend API, and building the user interface for task management.
+- The system now has a fully secure authentication layer.
+- Each employee can register, log in, and work only with their own tasks.
+- Unauthorized access is blocked automatically through token verification.
+- The backend is now ready for the next phase — building the frontend interface and connecting it to these endpoints.

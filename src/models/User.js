@@ -1,7 +1,7 @@
 // src/models/User.js
 const mongoose = require('mongoose');
 
-// simple user model for authentication and task ownership
+// User model for authentication and task ownership
 const UserSchema = new mongoose.Schema({
   name: {
     type: String,
@@ -19,9 +19,10 @@ const UserSchema = new mongoose.Schema({
     type: String,
     required: true
   },
-  // role can be extended later, keep as 'employee' for now
+  // Role defines the user's type. You can expand later (e.g., admin)
   role: {
     type: String,
+    enum: ['employee', 'manager'], // safe predefined roles
     default: 'employee'
   },
   createdAt: {
@@ -29,5 +30,11 @@ const UserSchema = new mongoose.Schema({
     default: Date.now
   }
 });
+
+// Instance method to return safe public user info (no password)
+UserSchema.methods.toPublic = function () {
+  const { _id, name, email, role, createdAt } = this;
+  return { id: _id, name, email, role, createdAt };
+};
 
 module.exports = mongoose.model('User', UserSchema);
