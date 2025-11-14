@@ -1,8 +1,8 @@
-// src/server.js
 const express = require('express');
 const connectDB = require('./config/db');
 const dotenv = require('dotenv');
 const cors = require('cors');
+const path = require('path');
 
 dotenv.config();
 const app = express();
@@ -12,14 +12,17 @@ connectDB();
 
 // middleware
 app.use(cors());
-app.use(express.json()); // parse JSON bodies
+app.use(express.json());
 
 // routes
 app.use('/api/auth', require('./routes/auth'));
 app.use('/api/tasks', require('./routes/tasks'));
 
-// basic health route
-app.get('/', (req, res) => res.send('Employee TaskTrack API running'));
+// Serve React app
+app.use(express.static(path.join(__dirname, '../client/build')));
+app.get('*', (req, res) => {
+  res.sendFile(path.join(__dirname, '../client/build/index.html'));
+});
 
 // start server
 const PORT = process.env.PORT || 5000;
